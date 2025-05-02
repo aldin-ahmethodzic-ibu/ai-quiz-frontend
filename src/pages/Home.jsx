@@ -1,7 +1,10 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 
 const Home = () => {
+  const navigate = useNavigate()
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="max-w-2xl w-full text-center space-y-8">
@@ -17,7 +20,7 @@ const Home = () => {
         <div className="space-y-6">
           <div className="space-y-4">
             <Button
-              onClick={() => {/* Add registration handler */}}
+              onClick={() => navigate('/register')}
               className="w-full sm:w-auto"
             >
               Get Started
@@ -30,7 +33,7 @@ const Home = () => {
             </p>
             <Button
               variant="secondary"
-              onClick={() => {/* Add login handler */}}
+              onClick={() => navigate('/login')}
               className="w-full sm:w-auto"
             >
               Login
