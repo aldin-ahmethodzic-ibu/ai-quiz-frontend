@@ -29,6 +29,9 @@ const Login = () => {
       localStorage.setItem('token', access_token);
       localStorage.setItem('token_type', token_type);
 
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new Event('authChange'));
+
       // Redirect to dashboard after successful login
       navigate('/dashboard');
     } catch (err) {
