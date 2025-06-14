@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const TakeQuiz = () => {
   const navigate = useNavigate();
@@ -44,22 +45,15 @@ const TakeQuiz = () => {
     }
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const tokenType = localStorage.getItem('token_type') || 'Bearer';
-      
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
       // Prepare submission data in the correct format
       const submissionData = {
-        quiz_id: quiz.quiz_id || 0,
+        quiz_id: quiz.quiz_id,
         answers: Object.fromEntries(
           Object.entries(selectedAnswers).map(([questionId, answer]) => [
             parseInt(questionId, 10),
@@ -68,21 +62,7 @@ const TakeQuiz = () => {
         )
       };
 
-      const response = await fetch('http://localhost:8000/quiz/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `${tokenType} ${token}`
-        },
-        body: JSON.stringify(submissionData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to submit quiz');
-      }
-
-      const resultData = await response.json();
+      const resultData = await api.post('/quiz/submit', submissionData);
       
       // Store results in localStorage
       localStorage.setItem('quizResults', JSON.stringify({
@@ -241,7 +221,7 @@ const TakeQuiz = () => {
                   Go Back to Questions
                 </Button>
                 <Button
-                  onClick={handleSubmitQuiz}
+                  onClick={handleSubmit}
                   disabled={loading}
                   className="w-full sm:w-auto"
                 >

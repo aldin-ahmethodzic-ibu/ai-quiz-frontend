@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -11,26 +12,10 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const tokenType = localStorage.getItem('token_type') || 'Bearer';
-        
-        if (!token) {
-          navigate('/login');
-          return;
-        }
+        setLoading(true);
+        setError('');
 
-        const response = await fetch('http://localhost:8000/user/me', {
-          method: 'GET',
-          headers: {
-            'Authorization': `${tokenType} ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
-        }
-
-        const data = await response.json();
+        const data = await api.get('/user/me');
         setProfile(data);
       } catch (err) {
         setError(err.message);
@@ -40,7 +25,7 @@ const Profile = () => {
     };
 
     fetchProfile();
-  }, [navigate]);
+  }, []);
 
   if (loading) {
     return (

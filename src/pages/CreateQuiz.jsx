@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const CreateQuiz = () => {
   const navigate = useNavigate();
@@ -20,35 +21,17 @@ const CreateQuiz = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
     try {
-      const token = localStorage.getItem('token');
-      const tokenType = localStorage.getItem('token_type') || 'Bearer';
-      
-      if (!token) {
-        navigate('/login');
-        return;
-      }
+      setLoading(true);
+      setError('');
 
-      const response = await fetch('http://localhost:8000/quiz/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `${tokenType} ${token}`
-        },
-        body: JSON.stringify(formData)
+      const quizData = await api.post('/quiz/generate', {
+        topic: formData.topic,
+        difficulty: formData.difficulty,
+        number_of_questions: formData.number_of_questions
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate quiz');
-      }
-
-      const quizData = await response.json();
       
       // Store quiz data in localStorage to use in the TakeQuiz component
       localStorage.setItem('currentQuiz', JSON.stringify(quizData));
@@ -78,7 +61,7 @@ const CreateQuiz = () => {
       )}
 
       <div className="bg-white p-8 rounded-lg shadow-md">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
           <div>
             <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1">
               Topic

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -14,71 +15,35 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasNoData, setHasNoData] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [statistics, setStatistics] = useState(null);
+  const [recentResults, setRecentResults] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const tokenType = localStorage.getItem('token_type') || 'Bearer';
-        
-        if (!token) {
-          navigate('/login');
+        setLoading(true);
+        setError('');
+
+        const profileData = await api.get('/user/me');
+        setProfile(profileData);
+
+        const [statsData, recentQuizzesData, recentResultsData] = await Promise.all([
+          api.get(`/user/${profileData.user_id}/statistics`),
+          api.get('/quiz/recent/5'),
+          api.get('/quiz/result/recent/5')
+        ]);
+
+        setStatistics(statsData);
+        setRecentQuizzes(recentQuizzesData);
+        setRecentResults(recentResultsData);
+
+        if (!statsData) {
+          setHasNoData(true);
           return;
         }
 
-        // First get the user profile to get the user_id
-        const profileResponse = await fetch('http://localhost:8000/user/me', {
-          method: 'GET',
-          headers: {
-            'Authorization': `${tokenType} ${token}`
-          }
-        });
-
-        if (!profileResponse.ok) {
-          throw new Error('Failed to fetch user profile');
-        }
-
-        const profileData = await profileResponse.json();
-
-        // Fetch all data in parallel
-        const [statsResponse, recentQuizzesResponse, recentResultsResponse] = await Promise.all([
-          fetch(`http://localhost:8000/user/${profileData.user_id}/statistics`, {
-            headers: { 'Authorization': `${tokenType} ${token}` }
-          }),
-          fetch(`http://localhost:8000/quiz/recent/5`, {
-            headers: { 'Authorization': `${tokenType} ${token}` }
-          }),
-          fetch(`http://localhost:8000/quiz/result/recent/5`, {
-            headers: { 'Authorization': `${tokenType} ${token}` }
-          })
-        ]);
-
-        if (!statsResponse.ok) {
-          if (statsResponse.status === 404) {
-            setHasNoData(true);
-            return;
-          }
-          throw new Error('Failed to fetch statistics');
-        }
-
-        const statsData = await statsResponse.json();
         setQuizStats(statsData);
-
-        if (recentQuizzesResponse.ok && recentResultsResponse.ok) {
-          const quizzesData = await recentQuizzesResponse.json();
-          const resultsData = await recentResultsResponse.json();
-          
-          // Create a map of quiz results for easy lookup
-          const resultsMap = new Map(resultsData.map(result => [result.quiz_id, result]));
-          
-          // Combine quiz data with results
-          const combinedData = quizzesData.map(quiz => ({
-            ...quiz,
-            result: resultsMap.get(quiz.quiz_id)
-          }));
-          
-          setRecentQuizzes(combinedData);
-        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -86,8 +51,8 @@ const Dashboard = () => {
       }
     };
 
-    fetchData();
-  }, [navigate]);
+    fetchDashboardData();
+  }, []);
 
   if (loading) {
     return (
@@ -145,15 +110,21 @@ const Dashboard = () => {
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Average Score</h2>
-          <p className="text-3xl font-bold text-indigo-600">{quizStats.average_score}%</p>
+          <p className="text-3xl font-bold text-indigo-600">
+            {Number.isInteger(quizStats.average_score) ? quizStats.average_score : quizStats.average_score.toFixed(2)}%
+          </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Highest Score</h2>
-          <p className="text-3xl font-bold text-indigo-600">{quizStats.highest_score}%</p>
+          <p className="text-3xl font-bold text-indigo-600">
+            {Number.isInteger(quizStats.highest_score) ? quizStats.highest_score : quizStats.highest_score.toFixed(2)}%
+          </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Lowest Score</h2>
-          <p className="text-3xl font-bold text-indigo-600">{quizStats.lowest_score}%</p>
+          <p className="text-3xl font-bold text-indigo-600">
+            {Number.isInteger(quizStats.lowest_score) ? quizStats.lowest_score : quizStats.lowest_score.toFixed(2)}%
+          </p>
         </div>
       </div>
 
@@ -171,14 +142,17 @@ const Dashboard = () => {
                       Difficulty: {quiz.difficulty} • {quiz.number_of_questions} questions
                     </p>
                   </div>
-                  {quiz.result && (
+                  {recentResults.find(result => result.quiz_id === quiz.quiz_id) && (
                     <div className="text-right">
                       <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${
-                        quiz.result.score >= 70 ? 'bg-green-100 text-green-800' :
-                        quiz.result.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                        recentResults.find(result => result.quiz_id === quiz.quiz_id).score >= 70 ? 'bg-green-100 text-green-800' :
+                        recentResults.find(result => result.quiz_id === quiz.quiz_id).score >= 50 ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {quiz.result.score}%
+                        {(() => {
+                          const score = recentResults.find(result => result.quiz_id === quiz.quiz_id).score;
+                          return Number.isInteger(score) ? score : score.toFixed(2);
+                        })()}%
                       </span>
                     </div>
                   )}

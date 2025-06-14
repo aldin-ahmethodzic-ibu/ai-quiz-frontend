@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const Login = () => {
   const [error, setError] = useState('');
@@ -10,20 +11,8 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await fetch('http://localhost:8000/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
-      }
-
-      const { access_token, token_type } = await response.json();
+      const response = await api.post('/auth/login', data);
+      const { access_token, token_type } = response;
       
       // Store the token in localStorage
       localStorage.setItem('token', access_token);

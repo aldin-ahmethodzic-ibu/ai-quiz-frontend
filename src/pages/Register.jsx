@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { api } from '../utils/api';
 
 const Register = () => {
   const [error, setError] = useState('');
@@ -10,13 +11,7 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await fetch('http://localhost:8000/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await api.post('/auth/register', data);
 
       if (!response.ok) {
         const errorData = await response.json();
