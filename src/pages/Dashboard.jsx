@@ -29,20 +29,29 @@ const Dashboard = () => {
         const profileData = await api.get('/user/me');
         setProfile(profileData);
 
-        // Then fetch statistics and recent data
-        const statsData = await api.get(`/user/${profileData.user_id}/statistics`);
-        const recentQuizzesData = await api.get('/quiz/recent/5');
-        const recentResultsData = await api.get('/quiz/result/recent/5');
+        try {
+          // Then fetch statistics and recent data
+          const statsData = await api.get(`/user/${profileData.user_id}/statistics`);
+          const recentQuizzesData = await api.get('/quiz/recent/5');
+          const recentResultsData = await api.get('/quiz/result/recent/5');
 
-        setStatistics(statsData);
-        setRecentQuizzes(recentQuizzesData);
-        setRecentResults(recentResultsData);
+          setStatistics(statsData);
+          setRecentQuizzes(recentQuizzesData);
+          setRecentResults(recentResultsData);
 
-        // Check if we have any statistics data
-        if (!statsData || Object.keys(statsData).length === 0) {
-          setHasNoData(true);
-        } else {
-          setQuizStats(statsData);
+          // Check if we have any statistics data
+          if (!statsData || Object.keys(statsData).length === 0) {
+            setHasNoData(true);
+          } else {
+            setQuizStats(statsData);
+          }
+        } catch (statsError) {
+          // If the error is about no quiz results, show the no data UI
+          if (statsError.message === 'No quiz results found for this user') {
+            setHasNoData(true);
+          } else {
+            setError(statsError.message);
+          }
         }
       } catch (err) {
         setError(err.message);
