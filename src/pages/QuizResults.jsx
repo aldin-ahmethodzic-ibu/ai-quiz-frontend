@@ -38,9 +38,8 @@ const QuizResults = () => {
     );
   }
 
-  // Calculate score percentage
-  const scorePercentage = results.score ? results.score : 
-    Math.round((results.correct_answers / results.quiz.questions.length) * 100);
+  // Use score directly as percentage
+  const scorePercentage = results.score;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6">
@@ -48,7 +47,7 @@ const QuizResults = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Quiz Results</h1>
           <p className="text-lg text-gray-600">
-            You scored {results.correct_answers || 0} out of {results.quiz.questions.length} questions correctly.
+            You scored {scorePercentage}%
           </p>
           
           <div className="mt-6 flex justify-center">

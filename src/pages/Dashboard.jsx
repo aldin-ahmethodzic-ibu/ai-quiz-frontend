@@ -1,17 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [quizStats, setQuizStats] = useState({
-    totalQuizzes: 0,
-    averageScore: 0,
-    recentQuizzes: []
+    total_quizzes: 0,
+    average_score: 0,
+    highest_score: 0,
+    lowest_score: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [hasNoData, setHasNoData] = useState(false);
 
-  // This would typically be populated from an API call when the component mounts
-  // For now, we'll just show a placeholder UI
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const tokenType = localStorage.getItem('token_type') || 'Bearer';
+        
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        // First get the user profile to get the user_id
+        const profileResponse = await fetch('http://localhost:8000/user/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `${tokenType} ${token}`
+          }
+        });
+
+        if (!profileResponse.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+
+        const profileData = await profileResponse.json();
+
+        // Then fetch the statistics using the user_id
+        const statsResponse = await fetch(`http://localhost:8000/user/${profileData.user_id}/statistics`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `${tokenType} ${token}`
+          }
+        });
+
+        if (!statsResponse.ok) {
+          if (statsResponse.status === 404) {
+            setHasNoData(true);
+            return;
+          }
+          throw new Error('Failed to fetch statistics');
+        }
+
+        const statsData = await statsResponse.json();
+        setQuizStats(statsData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <p>Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasNoData) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-2 text-lg text-gray-600">Welcome to your AI Quiz Dashboard</p>
+        </div>
+        <div className="bg-white p-8 rounded-lg shadow-md text-center">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">No Quiz Data Yet</h2>
+          <p className="text-gray-600 mb-6">You haven't taken any quizzes yet. Create your first quiz to get started!</p>
+          <Button onClick={() => navigate('/create-quiz')}>
+            Create Your First Quiz
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="bg-red-50 text-red-500 p-4 rounded-lg mb-6">
+          {error}
+        </div>
+        <Button onClick={() => navigate('/create-quiz')} variant="secondary">
+          Create New Quiz
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -21,72 +116,30 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Total Quizzes</h2>
-          <p className="text-3xl font-bold text-indigo-600">{quizStats.totalQuizzes}</p>
+          <p className="text-3xl font-bold text-indigo-600">{quizStats.total_quizzes}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Average Score</h2>
-          <p className="text-3xl font-bold text-indigo-600">{quizStats.averageScore}%</p>
+          <p className="text-3xl font-bold text-indigo-600">{quizStats.average_score}%</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Last Quiz</h2>
-          <p className="text-lg text-gray-600">
-            {quizStats.recentQuizzes.length > 0 
-              ? quizStats.recentQuizzes[0].topic 
-              : 'No quizzes taken yet'}
-          </p>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Highest Score</h2>
+          <p className="text-3xl font-bold text-indigo-600">{quizStats.highest_score}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Lowest Score</h2>
+          <p className="text-3xl font-bold text-indigo-600">{quizStats.lowest_score}%</p>
         </div>
       </div>
 
       {/* Create New Quiz Button */}
-      <div className="bg-white p-8 rounded-lg shadow-md mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Create a New Quiz</h2>
-        <p className="text-gray-600 mb-6">
-          Generate a custom quiz based on your preferred topic, difficulty level, and number of questions.
-        </p>
-        <Button 
-          onClick={() => navigate('/create-quiz')}
-          className="w-full md:w-auto"
-        >
+      <div className="flex justify-center">
+        <Button onClick={() => navigate('/create-quiz')}>
           Create New Quiz
         </Button>
-      </div>
-
-      {/* Recent Quizzes */}
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Quizzes</h2>
-        
-        {quizStats.recentQuizzes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {quizStats.recentQuizzes.map((quiz, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{quiz.topic}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{quiz.difficulty}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{quiz.score}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{quiz.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">You haven't taken any quizzes yet.</p>
-            <p className="text-gray-500 mt-2">Create your first quiz to get started!</p>
-          </div>
-        )}
       </div>
     </div>
   );

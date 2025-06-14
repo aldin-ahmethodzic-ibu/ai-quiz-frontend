@@ -57,13 +57,15 @@ const TakeQuiz = () => {
         return;
       }
 
-      // Prepare submission data
+      // Prepare submission data in the correct format
       const submissionData = {
-        quiz_id: quiz.quiz_id || 0, // This might be provided by the backend
-        answers: Object.keys(selectedAnswers).map(questionId => ({
-          question_id: parseInt(questionId, 10),
-          selected_option: selectedAnswers[questionId]
-        }))
+        quiz_id: quiz.quiz_id || 0,
+        answers: Object.fromEntries(
+          Object.entries(selectedAnswers).map(([questionId, answer]) => [
+            parseInt(questionId, 10),
+            answer
+          ])
+        )
       };
 
       const response = await fetch('http://localhost:8000/quiz/submit', {
