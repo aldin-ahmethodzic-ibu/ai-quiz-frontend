@@ -25,25 +25,25 @@ const Dashboard = () => {
         setLoading(true);
         setError('');
 
+        // First get the user profile
         const profileData = await api.get('/user/me');
         setProfile(profileData);
 
-        const [statsData, recentQuizzesData, recentResultsData] = await Promise.all([
-          api.get(`/user/${profileData.user_id}/statistics`),
-          api.get('/quiz/recent/5'),
-          api.get('/quiz/result/recent/5')
-        ]);
+        // Then fetch statistics and recent data
+        const statsData = await api.get(`/user/${profileData.user_id}/statistics`);
+        const recentQuizzesData = await api.get('/quiz/recent/5');
+        const recentResultsData = await api.get('/quiz/result/recent/5');
 
         setStatistics(statsData);
         setRecentQuizzes(recentQuizzesData);
         setRecentResults(recentResultsData);
 
-        if (!statsData) {
+        // Check if we have any statistics data
+        if (!statsData || Object.keys(statsData).length === 0) {
           setHasNoData(true);
-          return;
+        } else {
+          setQuizStats(statsData);
         }
-
-        setQuizStats(statsData);
       } catch (err) {
         setError(err.message);
       } finally {
