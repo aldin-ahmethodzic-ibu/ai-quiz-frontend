@@ -6,20 +6,21 @@ import { api } from '../utils/api';
 
 const Register = () => {
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
     try {
       const response = await api.post('/auth/register', data);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
-      }
-
-      // Registration successful
-      navigate('/login');
+      
+      // Show success message
+      setSuccess('Registration successful! Redirecting to login...');
+      
+      // Wait for 2 seconds to show the success message before redirecting
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       setError(err.message);
     }
@@ -36,6 +37,12 @@ const Register = () => {
         {error && (
           <div className="bg-red-50 text-red-500 p-3 rounded-lg text-center">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 text-green-600 p-3 rounded-lg text-center">
+            {success}
           </div>
         )}
 
