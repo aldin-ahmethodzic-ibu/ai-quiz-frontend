@@ -10,12 +10,13 @@ const Dashboard = () => {
     highest_score: 0,
     lowest_score: 0
   });
+  const [recentQuizzes, setRecentQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasNoData, setHasNoData] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         const tokenType = localStorage.getItem('token_type') || 'Bearer';
@@ -39,13 +40,18 @@ const Dashboard = () => {
 
         const profileData = await profileResponse.json();
 
-        // Then fetch the statistics using the user_id
-        const statsResponse = await fetch(`http://localhost:8000/user/${profileData.user_id}/statistics`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `${tokenType} ${token}`
-          }
-        });
+        // Fetch all data in parallel
+        const [statsResponse, recentQuizzesResponse, recentResultsResponse] = await Promise.all([
+          fetch(`http://localhost:8000/user/${profileData.user_id}/statistics`, {
+            headers: { 'Authorization': `${tokenType} ${token}` }
+          }),
+          fetch(`http://localhost:8000/quiz/recent/5`, {
+            headers: { 'Authorization': `${tokenType} ${token}` }
+          }),
+          fetch(`http://localhost:8000/quiz/result/recent/5`, {
+            headers: { 'Authorization': `${tokenType} ${token}` }
+          })
+        ]);
 
         if (!statsResponse.ok) {
           if (statsResponse.status === 404) {
@@ -57,6 +63,22 @@ const Dashboard = () => {
 
         const statsData = await statsResponse.json();
         setQuizStats(statsData);
+
+        if (recentQuizzesResponse.ok && recentResultsResponse.ok) {
+          const quizzesData = await recentQuizzesResponse.json();
+          const resultsData = await recentResultsResponse.json();
+          
+          // Create a map of quiz results for easy lookup
+          const resultsMap = new Map(resultsData.map(result => [result.quiz_id, result]));
+          
+          // Combine quiz data with results
+          const combinedData = quizzesData.map(quiz => ({
+            ...quiz,
+            result: resultsMap.get(quiz.quiz_id)
+          }));
+          
+          setRecentQuizzes(combinedData);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -64,7 +86,7 @@ const Dashboard = () => {
       }
     };
 
-    fetchStats();
+    fetchData();
   }, [navigate]);
 
   if (loading) {
@@ -133,6 +155,40 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Lowest Score</h2>
           <p className="text-3xl font-bold text-indigo-600">{quizStats.lowest_score}%</p>
         </div>
+      </div>
+
+      {/* Recent Activity Section */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
+        {recentQuizzes.length > 0 ? (
+          <div className="space-y-4">
+            {recentQuizzes.map((quiz) => (
+              <div key={quiz.quiz_id} className="border-b pb-3 last:border-b-0">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{quiz.topic}</h3>
+                    <p className="text-sm text-gray-600">
+                      Difficulty: {quiz.difficulty} • {quiz.number_of_questions} questions
+                    </p>
+                  </div>
+                  {quiz.result && (
+                    <div className="text-right">
+                      <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${
+                        quiz.result.score >= 70 ? 'bg-green-100 text-green-800' :
+                        quiz.result.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {quiz.result.score}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-600">No recent activity</p>
+        )}
       </div>
 
       {/* Create New Quiz Button */}

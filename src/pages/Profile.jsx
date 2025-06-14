@@ -19,7 +19,7 @@ const Profile = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:8000/users/me', {
+        const response = await fetch('http://localhost:8000/user/me', {
           method: 'GET',
           headers: {
             'Authorization': `${tokenType} ${token}`
@@ -63,59 +63,53 @@ const Profile = () => {
     );
   }
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Your Profile</h1>
-        <p className="mt-2 text-lg text-gray-600">Manage your account information</p>
+        <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+        <p className="mt-2 text-lg text-gray-600">Your account information</p>
       </div>
 
-      {profile && (
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Account Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Username</p>
-                  <p className="text-lg font-medium">{profile.username}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="text-lg font-medium">{profile.email}</p>
-                </div>
-              </div>
-            </div>
+      <div className="bg-white p-8 rounded-lg shadow-md space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-sm font-medium text-gray-500">Username</h2>
+            <p className="mt-1 text-lg text-gray-900">{profile.username}</p>
+          </div>
+          
+          <div>
+            <h2 className="text-sm font-medium text-gray-500">Email</h2>
+            <p className="mt-1 text-lg text-gray-900">{profile.email}</p>
+          </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Quiz Statistics</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Total Quizzes</p>
-                  <p className="text-2xl font-bold text-indigo-600">{profile.total_quizzes || 0}</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Average Score</p>
-                  <p className="text-2xl font-bold text-indigo-600">{profile.average_score || 0}%</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500">Highest Score</p>
-                  <p className="text-2xl font-bold text-indigo-600">{profile.highest_score || 0}%</p>
-                </div>
-              </div>
-            </div>
+          <div>
+            <h2 className="text-sm font-medium text-gray-500">User ID</h2>
+            <p className="mt-1 text-lg text-gray-900">{profile.user_id}</p>
+          </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <Button
-                onClick={() => navigate('/dashboard')}
-                variant="secondary"
-              >
-                Back to Dashboard
-              </Button>
-            </div>
+          <div>
+            <h2 className="text-sm font-medium text-gray-500">Joined At</h2>
+            <p className="mt-1 text-lg text-gray-900">{formatDate(profile.joined_at)}</p>
           </div>
         </div>
-      )}
+
+        <div className="pt-6">
+          <Button onClick={() => navigate('/dashboard')} variant="secondary">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
